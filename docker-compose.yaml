@@ -1,0 +1,110 @@
+# to create docker etwrok named roboshop
+# since we gave this network as default no need to mention network name in services 
+networks:
+  default:
+    external:
+      name: roboshop
+volumes:
+  mongodb: #docker volume create mongodb
+  redis:
+  mysql:
+  rabbitmq:
+services:
+  # Following command is eqalent to docker run -d --name mongodb --netwrok=roboshop mongodb:v1
+  mongodb: 
+    # if we dont give here container name than default name woubld be name of the folder in which we have all serice and service name and version of service (ex: o-robo-docker-mongodb-v1)
+    container_name: mongodb
+    image: mongodb:v1
+    # networks:
+    # - roboshop
+    volumes:
+    - source: mongodb
+      target: /data/db
+      type: volume
+
+  catalogue:
+    container_name: catalogue
+    image: catalogue:v1
+    # since cataloge service need mondodb to work
+    depends_on:
+    - mongodb
+
+  web:
+    container_name: web
+    image: web:v1
+    # since web has public access we need to give ports
+    # frist part of the port is for host and second port is for container
+    ports: 
+    - "80:80"
+    depends_on:
+    - catalogue
+    - user
+    - cart
+    - shipping
+    - payment 
+  
+  # redis we do need any customization that pulling from docker hub and using it (that is why there is no redis file in o-robo-docker repo)
+  redis:
+    container_name: redis
+    image: redis
+    volumes:
+    - source: redis
+      target: /data
+      type: volume
+
+  user:
+    container_name: user
+    image: user:v1
+    depends_on:
+    - redis
+    - mongodb
+  
+  cart:
+    container_name: cart
+    image: cart:v1
+    depends_on:
+    - redis
+    - catalogue
+
+  mysql:
+    container_name: mysql
+    image: mysql:v1
+    volumes:
+    - source: mysql
+      target: /var/lib/mysql
+      type: volume
+ 
+  shipping:
+    container_name: shipping
+    image: shipping:v1
+    depends_on:
+    - mysql 
+
+  # rabbitmq we do need any customization that pulling from docker hub and using it (that is why there is no rabbitmq file in o-robo-docker repo)
+  # if ther are any variables lile user and passowrd can give right here in compose yaml
+  rabbitmq:
+    container_name: rabbitmq
+    image: rabbitmq
+    environment:
+    - RABBITMQ_DEFAULT_USER=roboshop
+    - RABBITMQ_DEFAULT_PASS=roboshop123
+    volumes:
+    - source: rabbitmq
+      target: /var/lib/rabbitmq
+      type: volume
+
+  payment:
+    container_name: payment
+    image: payment:v1
+    depends_on:
+    - rabbitmq 
+    - user
+    - cart
+
+# docker compose only runs once images are build
+
+# need to be in folder where docker-compose.yaml is to run docker compose command
+
+# docker compose up -d  <-- create all the containers mentioned in docker-compose.yaml
+
+# docker compose  down   <-- to destroy all the containers
