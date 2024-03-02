@@ -1,4 +1,4 @@
-# to create docker etwrok named roboshop
+# to create docker netwrok named roboshop
 # since we gave this network as default no need to mention network name in services 
 networks:
   default:
